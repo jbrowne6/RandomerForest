@@ -1,5 +1,5 @@
 classdef rpclassificationforest
-    
+
     properties
         oobidx = {}; %indices of out of bag samples for each tree
         Tree = {};  %classification trees contained in the ensemble
@@ -14,7 +14,7 @@ classdef rpclassificationforest
         RotVars = logical([]);
         rpm = [];
     end
-    
+
     methods
         function forest = rpclassificationforest(X,Y,varargin)
             %class contstructor for RandomerForest object
@@ -79,14 +79,14 @@ classdef rpclassificationforest
             %rerf = rpclassificationforest(500,X,Y,'s',3,'mdiff','node','NWorkers',6);
             %
             %err = oobpredict(rerf,X,Y,'last');
-                
+
             if ~iscell(Y)
                 Y = cellstr(num2str(Y));
             end
             forest.classname = unique(Y);
             forest = growTrees(forest,X,Y,varargin{:});
         end     %class constructor
-        
+
         function forest = growTrees(forest,X,Y,varargin)
             okargs =   {'priorprob' 'cost'    'splitcriterion'  'splitmin'...
                         'minparent' 'minleaf'   'nvartosample'...
@@ -108,7 +108,7 @@ classdef rpclassificationforest
                 SampleWithReplacement,s,mdiff,ForestMethod,RandomMatrix,...
                 Rescale,NWorkers,Stratified,nmix,rotate,p,dprime,nTrees,dx,...
                 AdjustmentFactors,~,extra] = internal.stats.parseArgs(okargs,defaults,varargin{:});
-            
+
             % If ForestMethod is F-RC and nmix = 1, then just do RF instead
             % since it's the same and faster
             if strcmp(ForestMethod,'rerf') && strcmp(RandomMatrix,'frc')
@@ -116,45 +116,46 @@ classdef rpclassificationforest
                     ForestMethod = 'rf';
                 end
             end
-            
+
             %Convert to double if not already
             if ~isa(X,'double')
                 X = double(X);
             end
-            
+
             if ~strcmp(Rescale,'off')
                 X = rescale(X,[],Rescale);
                 forest.Rescale = Rescale;
             else
                 forest.Rescale = 'off';
             end
-            
+
             [n,d] = size(X);
-            
+
             %Check sparsity
             if s < 1/d
                 s = 1/d;
             elseif s > 1
                 s = 1;
             end
-            
+
             nclasses = length(forest.classname);
             priors = NaN(1,nclasses);
             for c = 1:nclasses
                 priors(c) = sum(strcmp(Y,forest.classname(c)))/length(Y);
             end
+		%JDB- if the fboot is 1 then nboot is the length of Y, why ceil?
             nboot = ceil(fboot*length(Y));
             Tree = cell(nTrees,1);
             oobidx = cell(nTrees,1);
             sampleidx = 1:length(Y);
-            
+
             if d<=500
                 RR = zeros(d,d,nTrees);
             else
                 RR = zeros(500,500,nTrees);
             end
             RotVars = false(nTrees,d);
-            
+
             % one random projection per tree implementation
             load Random_matrix_adjustment_factor
             RM = cell(nTrees,1);
@@ -165,17 +166,17 @@ classdef rpclassificationforest
 %                 elseif d > 100 && d <= 1000
 %                     dx = ceil(d^1.5);
 %                 end
-            
+
             poolobj = gcp('nocreate');
             if isempty(poolobj);
                 parpool('local',NWorkers,'IdleTimeout',360);
             end
-            
+
             %Reduce computational load for matrices with many zero elements
             if ~strcmp(ForestMethod,'rf') && ~rotate && ~issparse(X) && nnz(X)/numel(X) <= 0.01
                 X = sparse(X);
             end
-            
+
             parfor i = 1:nTrees
                 %Rotate data?
                 if rotate
@@ -193,7 +194,7 @@ classdef rpclassificationforest
                 else
                     Xtree = X;
                 end
-                
+
                 go = true;
                 if Stratified
                     while go
@@ -201,6 +202,8 @@ classdef rpclassificationforest
                         for c = 1:nclasses
                             idx = find(strcmp(forest.classname{c},Y));
                             if length(idx) > 1
+								%JDB- This seems to choose all of the samples not a
+								%subset.
                                 ibidx = cat(2,ibidx,transpose(randsample(idx,ceil(fboot*length(idx)),SampleWithReplacement)));
                             else
                                 ibidx(end+1) = idx;
@@ -213,10 +216,18 @@ classdef rpclassificationforest
                     while go
                         ibidx = randsample(sampleidx,nboot,SampleWithReplacement);
                         oobidx{i} = setdiff(sampleidx,ibidx);
+					%JDB- What is the purpose of this code?  Why not just let
+					%it go?  Why loop?
                         go = isempty(oobidx{i});
                     end
                 end
-                
+
+				%JDB- Delete- Check difference between ibidx size and sampleidx
+				%size.
+				if i == 5
+fprintf('the sample size is %d and the number of samples is %d\n',length(ibidx),
+sampleidx);
+
                 if ~strcmp(ForestMethod,'rf') && ~strcmp(ForestMethod,'rerf2')
                     Tree{i} = rpclassregtree(Xtree(ibidx,:),Y(ibidx,:),...
                         'priorprob',Prior,'cost',Cost,'splitcriterion',...
@@ -248,9 +259,9 @@ classdef rpclassificationforest
                         categ,'prune',Prune,'method',Method,'qetoler',...
                         qetoler,'names',names,'weights',W,'surrogate',...
                         surrogate,'skipchecks',skipchecks,'stream',Stream);
-                end  
+                end
             end     %parallel loop over i
-            
+
             %Compute interpretability as total number of variables split on
 %             NumVars = NaN(1,nTrees);
 %             if RandomForest
@@ -268,7 +279,7 @@ classdef rpclassificationforest
 %                     end
 %                     NumVars(i) = sum(TreeVars);
 %                 end
-%             end                        
+%             end
             forest.Tree = Tree;
             forest.oobidx = oobidx;
             forest.nTrees = length(forest.Tree);
@@ -286,15 +297,15 @@ classdef rpclassificationforest
                 forest.rpm = RM;
             end
         end     %function rpclassificationforest
-        
+
 %         oobpredict is deprecated
 %         function [predcell,err] = oobpredict(forest,X,Y)
-%             
+%
 %             %Convert to double if not already
 %             if ~isa(X,'double')
 %                 X = double(X);
 %             end
-%             
+%
 %             if ~strcmp(forest.Rescale,'off')
 %                 X = rescale(X,[],forest.Rescale);
 %             end
@@ -311,7 +322,7 @@ classdef rpclassificationforest
 %                             Xtree = X*forest.rotmat(:,:,i);
 %                         else
 %                             Xtree = X;
-%                             Xtree(:,forest.RotVars(i,:)) = X(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);       
+%                             Xtree(:,forest.RotVars(i,:)) = X(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);
 %                         end
 %                     else
 %                         Xtree = X;
@@ -328,7 +339,7 @@ classdef rpclassificationforest
 %                             Xtree = X*forest.rotmat(:,:,i);
 %                         else
 %                             Xtree = X;
-%                             Xtree(:,forest.RotVars(i,:)) = Xtree(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);       
+%                             Xtree(:,forest.RotVars(i,:)) = Xtree(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);
 %                         end
 %                     else
 %                         Xtree = X;
@@ -340,22 +351,22 @@ classdef rpclassificationforest
 %                 end
 %             end
 %         end     %function oobpredict
-        
+
         function scores = rerf_oob_classprob(forest,Xtrain,treenum)
             if nargin == 2
                 treenum = 'last';
             end
-            
+
             %Convert to double if not already
             if ~isa(Xtrain,'double')
                 Xtrain = double(Xtrain);
             end
-            
+
             if ~strcmp(forest.Rescale,'off')
                 Xtrain = rescale(Xtrain,[],forest.Rescale);
             end
             [nrows,d] = size(Xtrain);
-            
+
             Labels = forest.classname;
             nclasses = length(Labels);
             scoremat = NaN(nrows,nclasses,forest.nTrees);
@@ -369,7 +380,7 @@ classdef rpclassificationforest
                             Xtree = Xtrain(OOBIndices{i},:)*forest.rotmat(:,:,i);
                         else
                             Xtree = Xtrain(OOBIndices{i},:);
-                            Xtree(:,forest.RotVars(i,:)) = Xtree(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);       
+                            Xtree(:,forest.RotVars(i,:)) = Xtree(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);
                         end
                     else
                         Xtree = Xtrain(OOBIndices{i},:);
@@ -392,7 +403,7 @@ classdef rpclassificationforest
                             Xtree = Xtrain(OOBIndices{i},:)*forest.rotmat(:,:,i);
                         else
                             Xtree = Xtrain(OOBIndices{i},:);
-                            Xtree(:,forest.RotVars(i,:)) = Xtree(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);       
+                            Xtree(:,forest.RotVars(i,:)) = Xtree(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);
                         end
                     else
                         Xtree = Xtrain(OOBIndices{i},:);
@@ -418,33 +429,33 @@ classdef rpclassificationforest
                 scores(missing,:) = repmat(forest.priors,sum(missing),1);
             end
         end     %function rerf_oob_classprob
-        
+
         function scores = rerf_classprob(forest,Xtest,treenum,varargin)
             if nargin == 2
                 treenum = 'last';
             end
-            
+
             if nargin == 4;
                 Xtrain = varargin{1};
                 if ~isa(Xtrain,'double')
                     Xtrain = double(Xtrain);
                 end
             end
-            
+
             if ~strcmp(forest.Rescale,'off')
                 if nargin < 4
                     error('Training data is required as third input argument for predicting')
                 end
                 Xtest = rescale(Xtrain,Xtest,forest.Rescale);
             end
-            
+
             %Convert to double if not already
             if ~isa(Xtest,'double')
                 Xtest = double(Xtest);
             end
-            
+
             [nrows,d] = size(Xtest);
-            
+
             Labels = forest.classname;
             nclasses = length(Labels);
             scoremat = NaN(nrows,nclasses,forest.nTrees);
@@ -457,7 +468,7 @@ classdef rpclassificationforest
                             Xtree = Xtest*forest.rotmat(:,:,i);
                         else
                             Xtree = Xtest;
-                            Xtree(:,forest.RotVars(i,:)) = Xtree(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);       
+                            Xtree(:,forest.RotVars(i,:)) = Xtree(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);
                         end
                     else
                         Xtree = Xtest;
@@ -478,7 +489,7 @@ classdef rpclassificationforest
                             Xtree = Xtest*forest.rotmat(:,:,i);
                         else
                             Xtree = Xtest;
-                            Xtree(:,forest.RotVars(i,:)) = Xtree(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);       
+                            Xtree(:,forest.RotVars(i,:)) = Xtree(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);
                         end
                     else
                         Xtree = Xtest;
@@ -497,35 +508,35 @@ classdef rpclassificationforest
                 scores = mean(scoremat,3);
             end
         end     %function rerf_classprob
-        
-%         DEPRECATED 
+
+%         DEPRECATED
 %         function Y = predict(forest,Xtest,varargin)
-%                         
+%
 %             %Convert to double if not already
 %             if ~isa(Xtest,'double')
 %                 Xtest = double(Xtest);
 %             end
-%             
+%
 %             if nargin == 3;
 %                 Xtrain = varargin{1};
 %                 if ~isa(Xtrain,'double')
 %                     Xtrain = double(Xtrain);
 %                 end
 %             end
-%             
+%
 %             if ~strcmp(forest.Rescale,'off')
 %                 if nargin < 3
 %                     error('Training data is required as third input argument for predicting')
 %                 end
 %                 Xtest = rescale(Xtrain,Xtest,forest.Rescale);
 %             end
-%             
+%
 %             [n,d] = size(Xtest);
 %             predmat = NaN(n,forest.nTrees);
 %             YTree = cell(n,forest.nTrees);
 %             Tree = forest.Tree;
 %             rotate = ~isempty(forest.rotmat);
-%             
+%
 %             if ~strcmp(forest.ForestMethod,'rf')
 %                 parfor i = 1:forest.nTrees
 %                     if rotate
@@ -533,7 +544,7 @@ classdef rpclassificationforest
 %                             Xtree = Xtest*forest.rotmat(:,:,i);
 %                         else
 %                             Xtree = Xtest;
-%                             Xtree(:,forest.RotVars(i,:)) = Xtree(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);       
+%                             Xtree(:,forest.RotVars(i,:)) = Xtree(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);
 %                         end
 %                     else
 %                         Xtree = Xtest;
@@ -547,7 +558,7 @@ classdef rpclassificationforest
 %                             Xtree = Xtest*forest.rotmat(:,:,i);
 %                         else
 %                             Xtree = Xtest;
-%                             Xtree(:,forest.RotVars(i,:)) = Xtree(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);       
+%                             Xtree(:,forest.RotVars(i,:)) = Xtree(:,forest.RotVars(i,:))*forest.rotmat(:,:,i);
 %                         end
 %                     else
 %                         Xtree = Xtest;
@@ -563,12 +574,12 @@ classdef rpclassificationforest
 %             missing = isnan(ensemblepredictions);
 %             Y = Labels(ensemblepredictions(~missing));
 %         end     %function predict
-        
+
 %             DEPRECATED
 %             function sp = db_sparsity(forest)
 %             %sparsity of decision boundary computed as sum #variables used
 %             %over all nodes
-%             
+%
 %             sp = 0;
 %             for i = 1:forest.nTrees
 %                 Tree = forest.Tree{i};
@@ -582,7 +593,7 @@ classdef rpclassificationforest
 %                 end
 %             end
 %         end
-        
+
         function Depth = forest_depth(forest)
             Depth = NaN(forest.nTrees,1);
             parfor i = 1:forest.nTrees
