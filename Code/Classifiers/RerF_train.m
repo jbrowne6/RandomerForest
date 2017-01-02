@@ -14,7 +14,7 @@ function [Forest,Params,TrainTime] = RerF_train(Xtrain,Ytrain,Params)
 %   NWorkers: number of workers for inducing trees in parallel
 
 p = size(Xtrain,2);
-
+fprintf('Starting the RerF training\n');
 Params.AdjustmentFactors = load('Random_matrix_adjustment_factor');
 
 % set defaults if empty

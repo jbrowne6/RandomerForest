@@ -13,8 +13,8 @@ ntrials = 1;
 
 rng(1);
 
-Params.nTrees = 10000;
-Params.NWorkers = 2;
+Params.nTrees = 1000;
+Params.NWorkers = 1;
 Stratified = true;
 Params.Rescale = 'off';
 Params.mdiff = 'off';
@@ -22,6 +22,7 @@ Params.ForestMethod = 'rerf2';
 Params.RandomMatrix = 'sparse-unadjusted';
 Params.d = round(sqrt(p));
 Params.dx = p;
+    fprintf('mtry is %d out of %d variables\n',Params.d, Params.dx);
 
 for trial = 1:ntrials
     fprintf('Trial %d\n',trial)
@@ -39,7 +40,7 @@ for trial = 1:ntrials
         Predictions = predict_class(OOBScores(:,:,k),Forest{1}.classname);
         OOBError(trial,k) = misclassification_rate(Predictions,Ytrain,false);
     end
-    
+
 %     TestScores = rerf_classprob(Forest{1},Xtest,'last');
 %     TestPredictions(:,trial) = predict_class(TestScores,Forest{1}.classname);
 

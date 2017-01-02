@@ -94,65 +94,65 @@ classdef classregtree2
 
 %   Copyright 2006-2013 The MathWorks, Inc.
 
-    properties(SetAccess='protected',GetAccess='protected')
-        method = 'regression';
-          node = zeros(0,1);
-        parent = zeros(0,1);
-         class = zeros(0,1);
-           var = zeros(0,1);
-           cut = cell(0,1);
-      children = zeros(0,2);
-      nodeprob = zeros(0,1);
-       nodeerr = zeros(0,1);
-      nodesize = zeros(0,1);
-         npred = 0;
-       catcols = [];
-         prior = [];
-      nclasses = 1;
-          cost = [];
-     classprob = [];
-      impurity = [];
-    classcount = [];
-     classname = {};
-     prunelist = zeros(0,1);
-         alpha = [];
-    ntermnodes = [];
-         names = {};
+properties(SetAccess='protected',GetAccess='protected')
+method = 'regression';
+node = zeros(0,1);
+parent = zeros(0,1);
+class = zeros(0,1);
+var = zeros(0,1);
+cut = cell(0,1);
+children = zeros(0,2);
+nodeprob = zeros(0,1);
+nodeerr = zeros(0,1);
+nodesize = zeros(0,1);
+npred = 0;
+catcols = [];
+prior = [];
+nclasses = 1;
+cost = [];
+classprob = [];
+impurity = [];
+classcount = [];
+classname = {};
+prunelist = zeros(0,1);
+alpha = [];
+ntermnodes = [];
+names = {};
 prunecriterion = '';
-     minparent = [];
-       minleaf = [];
-  nvartosample = [];
-   mergeleaves = [];
+minparent = [];
+minleaf = [];
+nvartosample = [];
+mergeleaves = [];
 splitcriterion = '';
-       qetoler = [];
-      varassoc = {};
-        varimp = [];
-     nvarsplit = [];
-       surrvar = {};
-       surrcut = {};
-      surrflip = {};
-      catsplit = []; % for backwards compatibility with version prior to 9a
+qetoler = [];
+varassoc = {};
+varimp = [];
+nvarsplit = [];
+surrvar = {};
+surrcut = {};
+surrflip = {};
+catsplit = []; % for backwards compatibility with version prior to 9a
     end
-    
+
     methods
-        function a = classregtree2(x,y,varargin)
-            if nargin==1 && isa(x,'struct')
+    function a = classregtree2(x,y,varargin)
+    if nargin==1 && isa(x,'struct')
                 a = struct2tree(a,x);            % convert from struct to tree
             else
                 narginchk(2,Inf);
                 a = treefit(a,x,y,varargin{:});  % calls local version of treefit
             end
         end % classregtree2 constructor
-        
+
         function classprob = rfclassprob(Tree,X)
-            classprob = NaN(size(X,1),length(Tree.classname));
-            noderows = cell(0,length(Tree.node));
-            noderows{1} = 1:size(X,1);
-            internalnodes = Tree.node(Tree.var ~= 0);
-            internalnodes = internalnodes';
-            leafnodes = Tree.node(Tree.var == 0);
-            leafnodes = leafnodes';
-            for node = internalnodes
+        classprob = NaN(size(X,1),length(Tree.classname));
+        noderows = cell(0,length(Tree.node));
+        noderows{1} = 1:size(X,1);
+        internalnodes = Tree.node(Tree.var ~= 0);
+        internalnodes = internalnodes';
+        leafnodes = Tree.node(Tree.var == 0);
+        leafnodes = leafnodes';
+        for node = internalnodes
                 cut = Tree.cut{node};
                 x = X(noderows{node},Tree.var(node));
                 ch = Tree.children(node,:);
@@ -163,11 +163,11 @@ splitcriterion = '';
                 classprob(noderows{node},:) = repmat(Tree.classprob(node,:),length(noderows{node}),1);            
             end
         end     %function rpclassprob
-        
+
         function Depth = tree_depth(Tree)
-            Depth = 1;
-            CurrentNode = Tree.numnodes;
-            while Tree.parent(CurrentNode) ~= 0
+        Depth = 1;
+        CurrentNode = Tree.numnodes;
+        while Tree.parent(CurrentNode) ~= 0
                 CurrentNode = Tree.parent(CurrentNode);
                 Depth = Depth + 1;
             end
@@ -175,35 +175,35 @@ splitcriterion = '';
     end % methods block
 
     methods(Hidden = true)
-        function b = fieldnames(a)
-            b = properties(a);
-        end
-        
-        % Methods that we inherit, but do not want
-        function a = fields(varargin),     throwUndefinedError(); end
-        function a = ctranspose(varargin), throwUndefinedError(); end
-        function a = transpose(varargin),  throwUndefinedError(); end
-        function a = permute(varargin),    throwUndefinedError(); end
-        function a = reshape(varargin),    throwUndefinedError(); end
-        function a = cat(varargin),        throwNoCatError(); end
-        function a = horzcat(varargin),    throwNoCatError(); end
-        function a = vertcat(varargin),    throwNoCatError(); end
+    function b = fieldnames(a)
+    b = properties(a);
+end
+
+% Methods that we inherit, but do not want
+function a = fields(varargin),     throwUndefinedError(); end
+function a = ctranspose(varargin), throwUndefinedError(); end
+function a = transpose(varargin),  throwUndefinedError(); end
+function a = permute(varargin),    throwUndefinedError(); end
+function a = reshape(varargin),    throwUndefinedError(); end
+function a = cat(varargin),        throwNoCatError(); end
+function a = horzcat(varargin),    throwNoCatError(); end
+function a = vertcat(varargin),    throwNoCatError(); end
     end
-    
+
     methods(Hidden = true, Static = true)
-        function a = empty(varargin)
-            error(message('stats:classregtree2:NoEmptyAllowed', upper( mfilename )));
-        end
+    function a = empty(varargin)
+    error(message('stats:classregtree2:NoEmptyAllowed', upper( mfilename )));
+end
     end
-    
+
     methods
-        % Get cuts. This method is here to address the backwards
-        % incompatibility introduced in 9a. Prior to 9a classregtree2 had a
-        % numeric array 'cut' and a cell array 'catsplit' for categorical
-        % cuts. As of 9a, classregtree2 has a cell array 'cut' that combines
-        % both.
-        function newcut = get.cut(tree)
-            if iscell(tree.cut)
+    % Get cuts. This method is here to address the backwards
+    % incompatibility introduced in 9a. Prior to 9a classregtree2 had a
+    % numeric array 'cut' and a cell array 'catsplit' for categorical
+    % cuts. As of 9a, classregtree2 has a cell array 'cut' that combines
+    % both.
+    function newcut = get.cut(tree)
+    if iscell(tree.cut)
                 newcut = tree.cut;
             else
                 % Convert old cuts into new cuts
@@ -221,43 +221,43 @@ splitcriterion = '';
             end
         end
     end
-    
+
     methods(Static=true,Hidden=true)
-        function [X,Y,W,classnames,Yorig] = preparedata(X,Y,W,doclass)
-            %PREPAREDATA Perform initial data checks and transformations.
-            %
-            % [XOUT,YOUT,WOUT] = PREPAREDATA(X,Y,W,DOCLASS) processes matrix of
-            % predictor values X and vector of true response Y with weights W. For
-            % regression, Y is a numeric vector of regressed values. For
-            % classification, Y is a categorical vector of true class labels
-            % represented as an array of either char's or integers or a cell array of
-            % strings or a categorical array. X is a numeric matrix with one row per
-            % observation and one column per input variable. W is a numeric
-            % column-vector with one element per observation. The number of rows in X
-            % must match the number of elements in Y. DOCLASS is a logical flag, true
-            % for classification and false for regression.
-            %
-            % PREPAREDATA removes rows with nothing but missing values (NaN's) in X,
-            % rows without a valid class label in Y (for classification), and rows with
-            % NaN's in Y (for regression). For regression, it simply returns X, Y and W
-            % with these rows removed as XOUT, YOUT and WOUT.
-            %
-            % For classification, [XOUT,YOUT,WOUT] = PREPAREDATA(X,Y,W,true) returns a
-            % numeric vector YOUT of group indices for groups found in input labels Y.
-            %
-            % [XOUT,YOUT,WOUT,CLASSNAMES,YORIG] = PREPAREDATA(X,Y,W,true) also returns
-            % class names and YORIG, categorical Y data for classification. The class
-            % names are for the groups found in input labels Y. YORIG is always a cell
-            % array of strings with the original Y labels while YOUT is always a vector
-            % of numeric indices irrespective of the type of Y.
-            %
-            % See also GRP2IDX.
-        
-            % Check input type
-            if ~isfloat(X)
+    function [X,Y,W,classnames,Yorig] = preparedata(X,Y,W,doclass)
+    %PREPAREDATA Perform initial data checks and transformations.
+    %
+    % [XOUT,YOUT,WOUT] = PREPAREDATA(X,Y,W,DOCLASS) processes matrix of
+    % predictor values X and vector of true response Y with weights W. For
+    % regression, Y is a numeric vector of regressed values. For
+    % classification, Y is a categorical vector of true class labels
+    % represented as an array of either char's or integers or a cell array of
+    % strings or a categorical array. X is a numeric matrix with one row per
+    % observation and one column per input variable. W is a numeric
+    % column-vector with one element per observation. The number of rows in X
+    % must match the number of elements in Y. DOCLASS is a logical flag, true
+    % for classification and false for regression.
+    %
+    % PREPAREDATA removes rows with nothing but missing values (NaN's) in X,
+    % rows without a valid class label in Y (for classification), and rows with
+    % NaN's in Y (for regression). For regression, it simply returns X, Y and W
+    % with these rows removed as XOUT, YOUT and WOUT.
+    %
+    % For classification, [XOUT,YOUT,WOUT] = PREPAREDATA(X,Y,W,true) returns a
+    % numeric vector YOUT of group indices for groups found in input labels Y.
+    %
+    % [XOUT,YOUT,WOUT,CLASSNAMES,YORIG] = PREPAREDATA(X,Y,W,true) also returns
+    % class names and YORIG, categorical Y data for classification. The class
+    % names are for the groups found in input labels Y. YORIG is always a cell
+    % array of strings with the original Y labels while YOUT is always a vector
+    % of numeric indices irrespective of the type of Y.
+    %
+    % See also GRP2IDX.
+
+    % Check input type
+    if ~isfloat(X)
                 error(message('stats:classregtree2:preparedata:BadXType'));
             end
-            
+
             % Check input size
             if isempty(X) || isempty(Y)
                 error(message('stats:classregtree2:preparedata:EmptyXorY'));
@@ -265,7 +265,7 @@ splitcriterion = '';
             if size(X,1)~=length(Y)
                 error(message('stats:classregtree2:preparedata:InputSizeMismatch'));
             end
- 
+
             % Y must be numeric for regression
             if ~doclass && ~isfloat(Y)
                 error(message('stats:classregtree2:preparedata:BadYType'));
@@ -273,7 +273,7 @@ splitcriterion = '';
             if ~ischar(Y)
                 Y = Y(:);
             end
-            
+
             % Check weights
             if ~isfloat(W) || length(W)~=size(X,1) || ~isvector(W)
                 error(message('stats:classregtree2:preparedata:BadW'));
@@ -282,7 +282,7 @@ splitcriterion = '';
                 error(message('stats:classregtree2:preparedata:NegativeWeights'));
             end
             W = W(:);
-            
+
             % Get rid of NaN's in the vector of responses
             t = [];
             if ~doclass
@@ -293,7 +293,7 @@ splitcriterion = '';
                 Y(t) = [];
                 W(t) = [];
             end
-            
+
             % Make class labels
             classnames = {};
             Yorig = Y;
@@ -313,7 +313,7 @@ splitcriterion = '';
                     error(message('stats:classregtree2:preparedata:EmptyXorYafterNaNGroup'));
                 end
             end
-            
+
             % Get rid of instances that have NaN's in all vars
             t = all(isnan(X),2);
             if any(t)
@@ -325,7 +325,7 @@ splitcriterion = '';
             if isempty(X)
                 error(message('stats:classregtree2:preparedata:EmptyXorYafterNaN'));
             end
-            
+
             % Get rid of observation with zero weights
             t = W==0;
             if any(t)
@@ -338,15 +338,15 @@ splitcriterion = '';
                 error(message('stats:classregtree2:preparedata:EmptyXorYafterZeroW'));
             end
         end
-        
+
         function varnames = preparevars(varnames,nvars)
-            %PREPAREVARS Perform initial variable check and transformations.
-            %
-            % VARNAMES = PREPAREVARS(VARNAMES,NVARS) checks the size of the input
-            % vector of variable names VARNAMES against the expected size NVARS,
-            % converts VARNAMES to a cell array if VARNAMES are char's and assigns
-            % default variable names if none are supplied.
-            if ~isempty(varnames)
+        %PREPAREVARS Perform initial variable check and transformations.
+        %
+        % VARNAMES = PREPAREVARS(VARNAMES,NVARS) checks the size of the input
+        % vector of variable names VARNAMES against the expected size NVARS,
+        % converts VARNAMES to a cell array if VARNAMES are char's and assigns
+        % default variable names if none are supplied.
+        if ~isempty(varnames)
                 if ischar(varnames)
                     varnames = cellstr(varnames);
                 end
@@ -357,35 +357,35 @@ splitcriterion = '';
                 varnames = nvars;
             end
         end
-        
+
         function [prior,cost,removerows] = priorandcost(prior,cost,cnames,wj,id)
-            %PRIORANDCOST Perform initial check of prior probabilities and cost matrix.
-            %
-            % [PRIOR,COST,REMOVEROWS] = PRIORANDCOST(PRIOR,COST,CNAMES,WJ,ID) checks
-            % the input vector of prior probabilities and the input cost matrix. It
-            % returns default prior and cost arrays if empty prior and cost were
-            % supplied. It also returns indices of rows to be removed in case the prior
-            % probability or misclassification cost for this class is zero.
-            
-            % Convert to row-vector.
-            prior = prior(:)';
-            
-            % Get number of classes
-            nclass = length(cnames);
-            if ~iscellstr(cnames) || nclass==0
+        %PRIORANDCOST Perform initial check of prior probabilities and cost matrix.
+        %
+        % [PRIOR,COST,REMOVEROWS] = PRIORANDCOST(PRIOR,COST,CNAMES,WJ,ID) checks
+        % the input vector of prior probabilities and the input cost matrix. It
+        % returns default prior and cost arrays if empty prior and cost were
+        % supplied. It also returns indices of rows to be removed in case the prior
+        % probability or misclassification cost for this class is zero.
+
+        % Convert to row-vector.
+        prior = prior(:)';
+
+        % Get number of classes
+        nclass = length(cnames);
+        if ~iscellstr(cnames) || nclass==0
                 error(message('stats:classregtree2:priorandcost:BadClassNames'));
             end
-            
+
             % Check class id's
             if isempty(id) || ~isnumeric(id) || max(id)>nclass || min(id)<1
                 error(message('stats:classregtree2:priorandcost:BadClassIndex', nclass));
             end
-            
+
             % Check cumulative weights for classes
             if ~isnumeric(wj) || length(wj)~=nclass
                 error(message('stats:classregtree2:priorandcost:BadClassWeights', nclass));
             end
-            
+
             % Check prior
             if isempty(prior) || strcmpi(prior,'empirical')
                 prior = wj;
@@ -416,7 +416,7 @@ splitcriterion = '';
             if all(prior==0)
                 error(message('stats:classregtree2:priorandcost:ZeroPriorForObservedClasses'));
             end
-            
+
             % Normalize priors in such a way that the priors in present
             % classes add up to one.
             prior = prior/sum(prior);
@@ -446,7 +446,7 @@ splitcriterion = '';
                     error(message('stats:classregtree2:priorandcost:CostWithoutPositiveValues'));
                 end
             end
-        
+
             % Find observations for classes with zero misclassification costs
             if nclass>1
                 zerocost = all(cost==0,2)';
@@ -477,25 +477,25 @@ function Tree=treefit(Tree,X,Y,varargin)
 
 % Process inputs
 if isnumeric(Y)
-   Method = 'regression';
+    Method = 'regression';
 else
-   Method = 'classification';
+    Method = 'classification';
 end
 
 okargs =   {'priorprob'   'cost'  'splitcriterion' ...
-            'splitmin' 'minparent' 'minleaf' ...
-            'nvartosample' 'mergeleaves' 'categorical' 'prune' 'method' ...
-            'qetoler' 'names' 'weights' 'surrogate' 'skipchecks' ...
-            'stream'};
+'splitmin' 'minparent' 'minleaf' ...
+'nvartosample' 'mergeleaves' 'categorical' 'prune' 'method' ...
+'qetoler' 'names' 'weights' 'surrogate' 'skipchecks' ...
+'stream'};
 defaults = {[]            []      'gdi'                        ...
-            []         2          1                          ...
-            'all'          'on'          []            'off'    Method      ...
-            1e-6      {}       []        'off'      false ...
-            []};
+[]         2          1                          ...
+'all'          'on'          []            'off'    Method      ...
+1e-6      {}       []        'off'      false ...
+[]};
 [Prior,Cost,Criterion,splitmin,minparent,minleaf,...
-    nvartosample,Merge,categ,Prune,Method,qetoler,names,W,surrogate,...
-    skipchecks,Stream,~,extra] = ...
-    internal.stats.parseArgs(okargs,defaults,varargin{:});
+nvartosample,Merge,categ,Prune,Method,qetoler,names,W,surrogate,...
+skipchecks,Stream,~,extra] = ...
+internal.stats.parseArgs(okargs,defaults,varargin{:});
 
 % For backwards compatibility. 'catidx' is a synonym for 'categorical'
 for j=1:2:length(extra)
@@ -508,11 +508,11 @@ end
 
 % Decode method
 if ~ischar(Method) || isempty(Method) || ~(Method(1)=='c' || Method(1)=='r')
-   error(message('stats:classregtree2:BadMethod'));
+    error(message('stats:classregtree2:BadMethod'));
 elseif Method(1)=='c'
-   Method = 'classification';
+    Method = 'classification';
 else
-   Method = 'regression';
+    Method = 'regression';
 end
 
 % Classification or regression?
@@ -545,25 +545,25 @@ end
 
 % Fill out criterion, class labels and matrix for classification
 if doclass
-   switch(Criterion)
-    %                Criterion function   Is it an impurity measure?
-    %                ------------------   --------------------------
+    switch(Criterion)
+        %                Criterion function   Is it an impurity measure?
+        %                ------------------   --------------------------
     case 'gdi',      critfun = @gdi;      isimpurity = true;
     case 'twoing',   critfun = @twoing;   isimpurity = false;
     case 'deviance', critfun = @deviance; isimpurity = true;
     otherwise,     error(message('stats:classregtree2:BadSplitCriterion'))
-   end
-   
-   % Get binary matrix, C(i,j)==1 means point i is in class j
-   nclasses = length(cnames);
-   C = false(N,nclasses);
-   C(sub2ind([N nclasses],(1:N)',Y)) = 1;   
-   WC = bsxfun(@times,C,W);
-   Wj = sum(WC,1);
+    end
+
+    % Get binary matrix, C(i,j)==1 means point i is in class j
+    nclasses = length(cnames);
+    C = false(N,nclasses);
+    C(sub2ind([N nclasses],(1:N)',Y)) = 1;   
+    WC = bsxfun(@times,C,W);
+    Wj = sum(WC,1);
 else
-   C = Y(:);
-   isimpurity = [];
-   critfun = [];
+    C = Y(:);
+    isimpurity = [];
+    critfun = [];
 end
 
 % Process prior and cost
@@ -588,7 +588,7 @@ if doclass
         idx = Wj>0;
         W = sum(bsxfun(@times,WC(:,idx),Prior(idx)./Wj(idx)),2);
     end
-    
+
     % Adjust prior to take costs into account
     % pratio is a multiplicative factor for class probabilities
     Cj = sum(Cost,2)';
@@ -597,7 +597,7 @@ if doclass
         pratio = double(pratio);
     end
 else % regression
-   pratio = 1;
+    pratio = 1;
 end
 
 % Clear WC to release memory
@@ -700,10 +700,10 @@ nodeprob = zeros(M,1);
 resuberr = zeros(M,1);
 nodesize = zeros(M,1);
 if doclass
-   classprob = zeros(M,nclasses);
-   classcount = zeros(M,nclasses);
-   if isimpurity
-       impurity = zeros(M,1);
+    classprob = zeros(M,nclasses);
+    classcount = zeros(M,nclasses);
+    if isimpurity
+        impurity = zeros(M,1);
    end
    ybar = [];
 end
@@ -732,29 +732,29 @@ nextunusednode = 2;
 tnode = 1;
 ybar = 0;
 while(tnode < nextunusednode)
-   % Record information about this node
-   noderows = assignednode{tnode};
-   Nt = length(noderows);
-   Cnode = C(noderows,:);
-   Wnode = W(noderows);
-   Wt = sum(Wnode);
-   if doclass
-      % Compute class probabilities and related statistics for this node
-      Njt = sum(Cnode,1);    % number in class j at node t
-      Pjandt = sum(bsxfun(@times,Cnode,Wnode),1);
-      Pjgivent = Pjandt / sum(Pjandt);
-      misclasscost = Pjgivent * Cost;
-      [mincost,nodeclass] = min(misclasscost);
-      yfitnode(tnode) = nodeclass;
-      nodeprob(tnode) = Wt;
-      classprob(tnode,:) = Pjgivent;
-      classcount(tnode,:) = Njt;
-      impure = sum(Pjgivent>0)>1;
-      if isimpurity
-          Pcorr = Pjgivent.*pratio;
-          impurity(tnode) = feval(critfun,Pcorr/sum(Pcorr));
+    % Record information about this node
+    noderows = assignednode{tnode};
+    Nt = length(noderows);
+    Cnode = C(noderows,:);
+    Wnode = W(noderows);
+    Wt = sum(Wnode);
+    if doclass
+        % Compute class probabilities and related statistics for this node
+        Njt = sum(Cnode,1);    % number in class j at node t
+        Pjandt = sum(bsxfun(@times,Cnode,Wnode),1);
+        Pjgivent = Pjandt / sum(Pjandt);
+        misclasscost = Pjgivent * Cost;
+        [mincost,nodeclass] = min(misclasscost);
+        yfitnode(tnode) = nodeclass;
+        nodeprob(tnode) = Wt;
+        classprob(tnode,:) = Pjgivent;
+        classcount(tnode,:) = Njt;
+        impure = sum(Pjgivent>0)>1;
+        if isimpurity
+            Pcorr = Pjgivent.*pratio;
+            impurity(tnode) = feval(critfun,Pcorr/sum(Pcorr));
       end
-   else
+  else
       % Compute variance and related statistics for this node
       ybar = sum(Cnode.*Wnode)/Wt;
       yfitnode(tnode) = ybar;
@@ -762,56 +762,56 @@ while(tnode < nextunusednode)
       sst = sum((Cnode-ybar).^2.*Wnode);% total sum of squares at this node
       mincost = sst / Wt;
       impure = (mincost > qetoler*resuberr(1));
-   end
-   bestcrit          = -Inf;
-   nodesize(tnode)   = Nt;
-   resuberr(tnode)   = mincost;
-   cutvar(tnode)     = 0;
-   cutpoint{tnode}   = 0;
-   children(tnode,:) = 0;
-   if surrogate
+  end
+  bestcrit          = -Inf;
+  nodesize(tnode)   = Nt;
+  resuberr(tnode)   = mincost;
+  cutvar(tnode)     = 0;
+  cutpoint{tnode}   = 0;
+  children(tnode,:) = 0;
+  if surrogate
        varassoc(tnode) = {[]};
        surrvar(tnode) = {[]};
        surrcut(tnode) = {{}};
        surrflip(tnode) = {[]};
    end
-   
+
    % Consider splitting this node
    if (Nt>=minparent) && impure      % split only large impure nodes
-      Xnode = X(noderows,:);
-      bestvar = 0;
-      bestcut = 0;
+       Xnode = X(noderows,:);
+       bestvar = 0;
+       bestcut = 0;
 
-      % Reduce the number of predictor vars as specified by nvarstosample
-      varmap = 1:nvars;
-      if nusevars < nvars
-          if isempty(Stream)
-              varmap = randperm(nvars,nusevars);
+       % Reduce the number of predictor vars as specified by nvarstosample
+       varmap = 1:nvars;
+       if nusevars < nvars
+           if isempty(Stream)
+               varmap = randperm(nvars,nusevars);
           else
               varmap = randsample(Stream,nvars,nusevars);
           end
       end
       varmap = varmap(:)';
-      
+
       % Find the best of all possible splits
       for ivar=1:nusevars
-         % Index of variable to split on
-         jvar = varmap(ivar);
+          % Index of variable to split on
+          jvar = varmap(ivar);
 
-         % Categorical variable?
-         xcat = iscat(jvar);
+          % Categorical variable?
+          xcat = iscat(jvar);
 
-         % Get rid of missing values and sort this variable
-         idxnan = isnan(Xnode(:,jvar));
-         idxnotnan = find(~idxnan);
-         if isempty(idxnotnan)
-             continue;
+          % Get rid of missing values and sort this variable
+          idxnan = isnan(Xnode(:,jvar));
+          idxnotnan = find(~idxnan);
+          if isempty(idxnotnan)
+              continue;
          end
          [x,idxsort] = sort(Xnode(idxnotnan,jvar));
          idx = idxnotnan(idxsort);
          c = Cnode(idx,:);
          w = Wnode(idx);
-         
+
          % Downweight the impurity (for classification) or node mse (for
          % regression) by the fraction of observations that are being
          % split. Twoing already penalizes splits with low pL and pR.
@@ -835,39 +835,39 @@ while(tnode < nextunusednode)
 
          % Find optimal split for this variable
          [critval,cutval] = classregtreeRCcritval(full(x),doclass,c,w,pratio,...
-             xcat,Criterion,bestcrit,double(crit0U),minleaf);
-         
+         xcat,Criterion,bestcrit,double(crit0U),minleaf);
+
          % Change best split if this one is best so far
          if critval>bestcrit
-            bestcrit = critval;
-            bestvar = jvar;
-            bestcut = cutval;
+             bestcrit = critval;
+             bestvar = jvar;
+             bestcut = cutval;
          end
-      end
+     end
 
-      % Split this node using the best rule found
-      % Note: we have leftside==~rightside in the absence of NaN's
-      if bestvar~=0
+     % Split this node using the best rule found
+     % Note: we have leftside==~rightside in the absence of NaN's
+     if bestvar~=0
          nvarsplit(bestvar) = nvarsplit(bestvar)+1;
          x = Xnode(:,bestvar);
-         
+
          % Send observations left or right
          if ~iscat(bestvar)
-            cutvar(tnode) = bestvar;
-            leftside = x<bestcut;
-            rightside = x>=bestcut;
+             cutvar(tnode) = bestvar;
+             leftside = x<bestcut;
+             rightside = x>=bestcut;
          else
-            cutvar(tnode) = -bestvar;          % negative indicates cat. var. split
-            leftside = ismember(x,bestcut{1});
-            rightside = ismember(x,bestcut{2});
+             cutvar(tnode) = -bestvar;          % negative indicates cat. var. split
+             leftside = ismember(x,bestcut{1});
+             rightside = ismember(x,bestcut{2});
          end
-         
+
          % Store split position, children, parent, and node number
          cutpoint{tnode} = bestcut;
          children(tnode,:) = nextunusednode + (0:1);
          nodenumber(nextunusednode+(0:1)) = nextunusednode+(0:1)';
          parent(nextunusednode+(0:1)) = tnode;
-         
+
          %
          % Find surrogate splits
          %
@@ -903,27 +903,27 @@ while(tnode < nextunusednode)
              %   surrogate split sends an observation left, +1 if it sends
              %   an observation right, and 0 if uncertain.
              [tvarassoc,tvarimp,tsurrvar,tsurrcut,tsurrflip,tleftORright] = ...
-                 findsurrogate(Xnode,Cnode,Wnode,Wtot,doclass,isimpurity,critfun,...
-                 varmap,iscat,bestvar,Cost,resuberr(tnode),pratio,crit0,...
-                 leftside,rightside);
-             
+             findsurrogate(Xnode,Cnode,Wnode,Wtot,doclass,isimpurity,critfun,...
+             varmap,iscat,bestvar,Cost,resuberr(tnode),pratio,crit0,...
+             leftside,rightside);
+
              % Update variable importance for cuts on best variable
              varimp(varmap) = varimp(varmap) + tvarimp;
 
              % Sort vars by their associations with the best var.
              [~,idxvarsort] = sort(tvarassoc,'descend');
-             
+
              % Store surrogate cuts and if they need to be flipped
              surrcut(tnode) = {tsurrcut(idxvarsort)};
              surrflip(tnode) = {tsurrflip(idxvarsort)};
-             
+
              % Store variables for surrogate splits.
              % For categorical vars, store negative indices.
              tsurrvar = tsurrvar(idxvarsort);
              tiscat = iscat(tsurrvar);
              tsurrvar(tiscat) = -tsurrvar(tiscat);
              surrvar(tnode) = {tsurrvar};
-             
+
              % Store variable associations
              varassoc(tnode) = {tvarassoc(idxvarsort)};
 
@@ -941,16 +941,16 @@ while(tnode < nextunusednode)
                  end
              end             
          end
-         
+
          % Assign observations for the next node
          assignednode{nextunusednode} = noderows(leftside);
          assignednode{nextunusednode+1} = noderows(rightside);
-         
+
          % Update next node index
          nextunusednode = nextunusednode+2;
-      end
-   end
-   tnode = tnode + 1;
+     end
+ end
+ tnode = tnode + 1;
 end
 
 topnode        = nextunusednode - 1;
@@ -974,14 +974,14 @@ Tree.mergeleaves = Merge;
 Tree.nvarsplit = nvarsplit;
 
 if doclass
-   Tree.prior     = Prior;
-   Tree.nclasses  = nclasses;
-   Tree.cost      = Cost;
-   Tree.classprob = classprob(1:topnode,:);
-   Tree.classcount= classcount(1:topnode,:);
-   Tree.classname = cnames;
-   if isimpurity
-       Tree.impurity = impurity(1:topnode);
+    Tree.prior     = Prior;
+    Tree.nclasses  = nclasses;
+    Tree.cost      = Cost;
+    Tree.classprob = classprob(1:topnode,:);
+    Tree.classcount= classcount(1:topnode,:);
+    Tree.classname = cnames;
+    if isimpurity
+        Tree.impurity = impurity(1:topnode);
    end
    Tree.splitcriterion = Criterion;
 else
@@ -1008,7 +1008,7 @@ if strcmpi(Merge,'on')
 end
 
 if strcmpi(Prune,'on')        % compute optimal pruning sequence if requested
-   Tree = prune(Tree);
+    Tree = prune(Tree);
 end
 end
 
@@ -1049,13 +1049,13 @@ adjfactor = (1 - 100*eps(class(Risk)));
 
 % Work up from the bottom of the tree
 while(true)
-   % Find ''twigs'' with two leaf children
-   branches = find(~isleaf & isntpruned);
-   twig = branches(sum(isleaf(Tree.children(branches,:)),2) == 2);
-   if isempty(twig)
-      break;            % must have just the root node left
+    % Find ''twigs'' with two leaf children
+    branches = find(~isleaf & isntpruned);
+    twig = branches(sum(isleaf(Tree.children(branches,:)),2) == 2);
+    if isempty(twig)
+        break;            % must have just the root node left
    end
-   
+
    % Find twigs to ''unsplit'' if the error of the twig is no larger
    % than the sum of the errors of the children
    Rtwig = Risk(twig);
@@ -1063,19 +1063,19 @@ while(true)
    Rsplit = unsplitRisk(twig) + sum(Risk(kids),2);
    unsplit = Rsplit >= Rtwig'*adjfactor;
    if any(unsplit)
-      % Mark children as pruned, and mark twig as now a leaf
-      isntpruned(kids(unsplit,:)) = 0;
-      twig = twig(unsplit);   % only these to be marked on next 2 lines
-      isleaf(twig) = 1;
-      doprune(twig) = 1;
+       % Mark children as pruned, and mark twig as now a leaf
+       isntpruned(kids(unsplit,:)) = 0;
+       twig = twig(unsplit);   % only these to be marked on next 2 lines
+       isleaf(twig) = 1;
+       doprune(twig) = 1;
    else
-      break;
+       break;
    end
 end
 
 % Remove splits that are useless
 if any(doprune)
-   Tree = prune(Tree,'nodes',find(doprune));
+    Tree = prune(Tree,'nodes',find(doprune));
 end
 end
 
@@ -1092,9 +1092,9 @@ function idx = getclassindex(cnames,g)
 
 % Convert to common string form, whether input is char, cell, or numeric
 if isnumeric(g)
-   g = cellstr(strjust(num2str(g(:)), 'left'));
+    g = cellstr(strjust(num2str(g(:)), 'left'));
 elseif ~iscell(g)
-   g = cellstr(g);
+    g = cellstr(g);
 end
 
 % Look up each class in the grouping variable.
@@ -1103,8 +1103,8 @@ end
 
 % ---------------------------------------
 function [varassoc,varimp,surrvar,surrcut,surrflip,leftORright] = ...
-    findsurrogate(Xnode,Cnode,Wnode,Wtot,doclass,isimpurity,critfun,...
-    varmap,iscat,bestvar,Cost,tresuberr,pratio,crit0,leftside,rightside)
+findsurrogate(Xnode,Cnode,Wnode,Wtot,doclass,isimpurity,critfun,...
+varmap,iscat,bestvar,Cost,tresuberr,pratio,crit0,leftside,rightside)
 % Get number of vars and make default output
 nvar = length(varmap);
 N = size(Xnode,1);
@@ -1127,7 +1127,7 @@ minp = min(pL,pR);
 for ivar=1:nvar
     % Get the predictor from the original data X
     jvar = varmap(ivar);
- 
+
     % If best-split variable, assign left and right cases.
     % Best variable is not a surrogate variable but we need to compute
     % varimp for it.
@@ -1139,7 +1139,7 @@ for ivar=1:nvar
         % Find the split that maximizes pLL+pRR
         %
         x = Xnode(:,jvar);        
-        
+
         % If categorical variable, add every category to the side with
         % larger probability
         if iscat(jvar)
@@ -1174,8 +1174,8 @@ for ivar=1:nvar
                 surrcut{ivar} = {leftvals rightvals};
                 varassoc(ivar) = (minp-(1-pLL-pRR)) / minp;
             end
-            
-        % If numeric variable, try all splits
+
+            % If numeric variable, try all splits
         else
             % Find NaN's and sort
             idxnotnan = find(~isnan(x));
@@ -1184,21 +1184,21 @@ for ivar=1:nvar
             end
             [x,idxsorted] = sort(x(idxnotnan));
             idx = idxnotnan(idxsorted);
-            
+
             % Determine if there's anything to split along this variable
             maxeps = max(eps(x(1)), eps(x(end)));
             if x(1)+maxeps > x(end)
                 continue;
             end
-            
+
             % Accept only splits on rows with distinct values
             idxdistinct = find(x(1:end-1) + ...
-                max([eps(x(1:end-1)) eps(x(2:end))],[],2) < x(2:end));
+            max([eps(x(1:end-1)) eps(x(2:end))],[],2) < x(2:end));
             if isempty(idxdistinct)
                 continue;
             end
             idxdistinct(end+1) = length(x);
-            
+
             % Group into left and right using optimal split
             w = repmat(Wnode(idx)/Wt,1,2);
             w(rightside(idx),1) = 0;
@@ -1207,12 +1207,12 @@ for ivar=1:nvar
             w = cumsum(w,1);
             w = w(idxdistinct,:);
             x = x(idxdistinct);
-            
+
             % Find split maximizing pLL+pRR
             [wLLandRRmax,i1] = ...
-                max(w(1:end-1,1)+w(end,2)-w(1:end-1,2));
+            max(w(1:end-1,1)+w(end,2)-w(1:end-1,2));
             [wLRandRLmax,i2] = ...
-                max(w(end,1)-w(1:end-1,1)+w(1:end-1,2));
+            max(w(end,1)-w(1:end-1,1)+w(1:end-1,2));
             if wLLandRRmax<wLRandRLmax
                 surrflip(ivar) = -1;
                 pLL = w(end,1)-w(i2,1);
@@ -1227,7 +1227,7 @@ for ivar=1:nvar
             x = Xnode(:,jvar);
             leftORright(x<cut,ivar)  = -surrflip(ivar);
             leftORright(x>=cut,ivar) = +surrflip(ivar);
-            
+
             % Get association
             if minp>1-pLL-pRR && pLL>0 && pRR>0
                 surrvar(ivar) = true;
@@ -1236,7 +1236,7 @@ for ivar=1:nvar
             end
         end
     end
-        
+
     % Compute var importance
     sendleft = leftORright(:,ivar)<0;
     sendright = leftORright(:,ivar)>0;
@@ -1252,18 +1252,18 @@ for ivar=1:nvar
             Pleft = Pleft.*pratio;
             Pright = Pright.*pratio;
             varimp(ivar) = (1-sum(Wnode(idxmiss))/Wt)*crit0 ...
-                - sum(Pleft)*feval(critfun,Pleft/sum(Pleft)) ...
-                - sum(Pright)*feval(critfun,Pright/sum(Pright));
+            - sum(Pleft)*feval(critfun,Pleft/sum(Pleft)) ...
+            - sum(Pright)*feval(critfun,Pright/sum(Pright));
         else
             varimp(ivar) = Wt*tresuberr ...
-                - min(Pleft*Cost) - min(Pright*Cost);
+            - min(Pleft*Cost) - min(Pright*Cost);
         end
     else
         ybarleft = sum(Wleft.*Cleft)/sum(Wleft);
         ybarright = sum(Wright.*Cright)/sum(Wright);
         varimp(ivar) = (1-sum(Wnode(idxmiss))/Wt)*crit0 ...
-            - ( sum(Wleft.*(Cleft-ybarleft).^2) ...
-            + sum(Wright.*(Cright-ybarright).^2) )/Wtot;
+        - ( sum(Wleft.*(Cleft-ybarleft).^2) ...
+        + sum(Wright.*(Cright-ybarright).^2) )/Wtot;
     end
 end
 
@@ -1283,15 +1283,15 @@ function treeobj=struct2tree(treeobj,S)
 
 % Look at all fields required for regression or classification trees
 allfields = {'method'   'node'     'parent'   'class'   'var' ...
-             'cut'      'children' 'nodeprob' 'nodeerr' ...
-             'nodesize' 'npred'    'catcols'  ...
-             'nclasses' 'prior'    'cost'     ...
-             'classprob' 'classcount' 'classname'};
+'cut'      'children' 'nodeprob' 'nodeerr' ...
+'nodesize' 'npred'    'catcols'  ...
+'nclasses' 'prior'    'cost'     ...
+'classprob' 'classcount' 'classname'};
 fn = fieldnames(S);
 if ~ismember('method',fn) || ...
-   (strcmpi(S.method,'classification') && ~all(ismember(allfields,fn))) || ...
-   (strcmpi(S.method,'regression')     && ~all(ismember(allfields(1:12),fn)))
-   error(message('stats:classregtree2:BadTree'));
+    (strcmpi(S.method,'classification') && ~all(ismember(allfields,fn))) || ...
+    (strcmpi(S.method,'regression')     && ~all(ismember(allfields(1:12),fn)))
+    error(message('stats:classregtree2:BadTree'));
 end
 if strcmpi(S.method,'regression')
     nrequired = 12;
@@ -1305,10 +1305,10 @@ end
 
 % Look at optional fields
 optionalfields = {'names' 'prunelist' 'alpha' 'ntermnodes' ...
-    'impurity' 'prunecriterion' ...
-    'minparent' 'minleaf' 'nvartosample' 'mergeleaves' ...
-    'splitcriterion' 'qetoler' 'varassoc' 'varimp' 'nvarsplit' ...
-    'surrvar' 'surrcut' 'surrflip' 'catsplit'};
+'impurity' 'prunecriterion' ...
+'minparent' 'minleaf' 'nvartosample' 'mergeleaves' ...
+'splitcriterion' 'qetoler' 'varassoc' 'varimp' 'nvarsplit' ...
+'surrvar' 'surrcut' 'surrflip' 'catsplit'};
 for j=1:numel(optionalfields)
     fname = optionalfields{j};
     if isfield(S,fname)

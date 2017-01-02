@@ -175,16 +175,23 @@ classdef rpclassificationforest
             if ~strcmp(ForestMethod,'rf') && ~rotate && ~issparse(X) && nnz(X)/numel(X) <= 0.01
                 X = sparse(X);
             end
-            
+ fprintf('starting tree creation\n')
+           
             parfor i = 1:nTrees
                 %Rotate data?
+			if i==10
+ fprintf('starting rotation\n')
+end
                 if rotate
-                    %is d > 500? if so only rotate a subset of 500 of the
+                		if i==10
+ fprintf('rotation is true\n')
+end
+    %is d > 500? if so only rotate a subset of 500 of the
                     %dimensions
                     if d<=500
                         RR(:,:,i) = random_rotation(d);
                         Xtree = X*RR(:,:,i);
-                    else
+			                    else
                         RR(:,:,i) = random_rotation(500);
                         RotVars(i,:) = ismember(1:d,randperm(d,500));
                         Xtree = X;
@@ -192,10 +199,21 @@ classdef rpclassificationforest
                     end
                 else
                     Xtree = X;
+		    if i==10
+ 			fprintf('rotation is false\n')
+		    end
+
                 end
-                
+        			if i==10
+ fprintf('done rotation\n')
+end
+        
                 go = true;
                 if Stratified
+if i==10
+ 			fprintf('stratified is true\n')
+		    end
+
                     while go
                         ibidx = [];
                         for c = 1:nclasses
@@ -210,6 +228,10 @@ classdef rpclassificationforest
                         go = isempty(oobidx{i});
                     end
                 else
+if i==10
+ 			fprintf('stratified is false\n')
+		    end
+
                     while go
                         ibidx = randsample(sampleidx,nboot,SampleWithReplacement);
                         oobidx{i} = setdiff(sampleidx,ibidx);
@@ -231,6 +253,13 @@ classdef rpclassificationforest
                 elseif strcmp(ForestMethod,'rerf2')
                     RM{i} = randmat(d,dx,RandomMatrix,s,nmix,...
                         ceil(dx^(1/interp1(AdjustmentFactors.dims,AdjustmentFactors.slope,d))));
+if i==1
+ 			fprintf('starting tree 10 rerf2 data\n')
+				disp(RM{i});
+				disp(X([1:5],:));
+				disp(Xtree([1:5],:)*RM{i});
+			end
+
                     Tree{i} = classregtree2(Xtree(ibidx,:)*RM{i},Y(ibidx,:),...
                         'priorprob',Prior,'cost',Cost,'splitcriterion',...
                         Criterion,'splitmin',splitmin,'minparent',...
